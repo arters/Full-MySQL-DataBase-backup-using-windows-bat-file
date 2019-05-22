@@ -1,10 +1,25 @@
 # MySQL-DataBase-backup-using-windows-bat-file
 
+## Automatic Backup All Your MySQL Database in zip format Using Windows Batch file  
 
-## Automatic Backup All Your MySQL Database in zip format Using Windows Batch file
 * 自動定期備份匯出MySQL資料庫的所有 scheme、data、額外語法
 * 可設置正式環境與測試環境切換
 * 可以使用Windows任務計劃程序自動執行此腳本
+
+## Setup (設置選項)  
+開啟 mysqldump.bat
+
+Parameter | Description
+------------ | -------------
+exe7z | 7z - 壓縮軟體安裝路徑
+mysqldumpPath | 你的mysql安裝位置
+dbName | 資料庫名稱
+mysqlUserName | 資料庫帳號
+mysqlPassword | 資料庫密碼
+backupDir | 備份路徑
+zipPrm | 壓縮率
+
+
 
 ## How to Use (使用方式)
 
