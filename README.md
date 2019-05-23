@@ -2,9 +2,11 @@
 
 ## Automatic Backup All Your MySQL Database in zip format Using Windows Batch file  
 
+* MySQL BackUp And Recovery
 * 自動定期備份匯出MySQL資料庫的所有 scheme、data、額外語法
 * 可設置正式環境與測試環境切換
 * 可以使用Windows任務計劃程序自動執行此腳本
+
 
 ## Setup (設置選項)  
 開啟 mysqldump.bat
