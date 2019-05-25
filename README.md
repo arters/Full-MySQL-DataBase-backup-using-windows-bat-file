@@ -2,9 +2,11 @@
 
 ## Automatic Backup All Your MySQL Database in zip format Using Windows Batch file  
 
+* 備份『資料』(data)、『結構』(scheme)跟 『額外語法』(triggers)
 * MySQL BackUp And Recovery
-* 自動定期備份匯出 MySQL 資料庫的 scheme、data、額外語法
+* 自動定期匯出 MySQL 資料庫備份
 * 可以使用 Windows 任務計劃程序自動執行此腳本
+* MyISAM 或 InnoDB 支援
 
 
 ## Setup (設置選項)  
