@@ -1,59 +1,117 @@
-rem -- mysqldump
-rem -- 2018/11/07 Jwu
+rem --mysqldump
+rem 2019/10/02 Jwu
+rem 2018/11/07
+rem 2018/06/29
 @ECHO OFF
 
-rem -- MySQL export settings
-SET dbName=your_db_name
-SET dbUser=dump_name
-SET dbPass=dump_pass
+REM 取得今天的年、月、日 (補零)
+SET TodayYear=%date:~0,4%
+SET TodayMonthP0=%date:~5,2%
+SET TodayDayP0=%date:~8,2%
 
-rem -- Backup settings
-SET backupDir=D:\your_dir\backup\
+REM 修正 Batch 遇到 08, 09 會視為八進位的問題
+IF %TodayMonthP0:~0,1% == 0 (
+	SET /A TodayMonth=%TodayMonthP0:~1,1%+0
+) ELSE (
+	SET /A TodayMonth=TodayMonthP0+0
+)
+IF %TodayMonthP0:~0,1% == 0 (
+	SET /A TodayDay=%TodayDayP0:~1,1%+0
+) ELSE (
+	SET /A TodayDay=TodayDayP0+0
+)
 
-set zipPath=C:\Program Files\7-Zip\7z.exe
-SET mysqldumpPath=C:\php\mysql\bin\mysqldump.exe
+set hour=%time:~0,2%
+if "%hour:~0,1%" == " " set hour=0%hour:~1,1%
+set min=%time:~3,2%
+if "%min:~0,1%" == " " set min=0%min:~1,1%
+set secs=%time:~6,2%
+if "%secs:~0,1%" == " " set secs=0%secs:~1,1%
 
+rem -- 設定測試環境電腦名稱，以辦別正式主機環境與測試環境
+SET DevComputerName=Mypc
 
-rem -- No change is required
+rem -- 偵測是否為測試環境
+if %ComputerName% == %DevComputerName% (
+rem -- 測試環境
+    set exe7z=C:\Program Files\7-Zip\7z.exe
+    SET mysqldumpPath=C:\mysql\bin\mysqldump.exe
+    SET dbName=jwuDB
+    SET mysqlUserName=root
+    SET mysqlPassword=root
+    rem -- 備份路徑
+    SET backupDir=D:\backup\db\
+) ELSE (
+rem -- 正式環境
+    set exe7z=C:\Program Files\7-Zip\7z.exe
+    SET mysqldumpPath=C:\mysql\bin\mysqldump.exe
+    SET dbName=jwuDB
+    SET mysqlUserName=root
+    SET mysqlPassword=root
+    rem -- 備份路徑
+    SET backupDir=D:\backup\db\
+)
+
+rem -- 要排除匯出的資料表名稱,以下資料表資料將不被匯出
+SET EXCLUDED_TABLES=t1,t2,t4
+
+rem -- 7z參數
+rem -- -sdel (Delete files after compression) switch
+rem -- -mx0 (0/1/3/5/7/9, 壓縮率, 預設為5, 數字愈大壓縮率愈高, 0為不壓縮)
 set zipPrm=a -t7z -mx9 -sdel
+
+rem -- 輸出路徑
+SET saveDir=%~dp0\storage\
+rem -- data_%TodayYear%%TodayMonthP0%%TodayDayP0%_%hour%%min%%secs%_%dbName%.sql
 SET schemeSaveName=scheme_%dbName%.sql
 SET additionalSaveName=additional_%dbName%.sql
 SET dataSaveName=data_%dbName%.sql
-SET schemeSavePath=%backupDir%%schemeSaveName%
-SET additionalSavePath=%backupDir%%additionalSaveName%
-SET dataSavePath=%backupDir%%dataSaveName%
 
-for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do set "dt=%%a"
-set "YY=%dt:~2,2%" & set "YYYY=%dt:~0,4%" & set "MM=%dt:~4,2%" & set "DD=%dt:~6,2%"
-set "HH=%dt:~8,2%" & set "Min=%dt:~10,2%" & set "Sec=%dt:~12,2%"
+SET schemeSavePath=%saveDir%%schemeSaveName%
+SET additionalSavePath=%saveDir%%additionalSaveName%
+SET dataSavePath=%saveDir%%dataSaveName%
 
-set "fullstamp=%YYYY%-%MM%-%DD%_%HH%%Min%%Sec%"
+SET dataZipName=%TodayYear%%TodayMonthP0%%TodayDayP0%_%hour%%min%%secs%_%dbName%.zip
+SET dataZipPath=%saveDir%%dataZipName%
 
-SET dataZipName=%fullstamp%_%dbName%.zip
-SET dataZipPath=%backupDir%%dataZipName%
+SET helpName=%saveDir%howToUse.txt
 
+rem -- 創建目錄
+if NOT exist "%saveDir%" mkdir "%saveDir%"
 if NOT exist "%backupDir%" mkdir "%backupDir%"
 
 chcp 65001
-@echo MySQL - Database Import - Recovery Methods> howToUse.txt
-@echo Database: %dbName%>> howToUse.txt
-@echo mysql -u [userName] -p[passWord] %dbName% --default-character-set=utf8 ^< %schemeSaveName%>> howToUse.txt
-@echo mysql -u [userName] -p[passWord] %dbName% --default-character-set=utf8 ^< %additionalSaveName%>> howToUse.txt
-@echo mysql -u [userName] -p[passWord] %dbName% --default-character-set=utf8 ^< %dataSaveName%>> howToUse.txt
+@echo MySQL匯入資料(import)> %helpName%
+@echo 資料庫：%dbName% >> %helpName%
+@echo mysql -u [userName] -p[passWord] %dbName% --default-character-set=utf8 ^< %schemeSaveName%>> %helpName%
+@echo mysql -u [userName] -p[passWord] %dbName% --default-character-set=utf8 ^< %additionalSaveName%>> %helpName%
+@echo mysql --init-command="SET SESSION FOREIGN_KEY_CHECKS=0;" -u [userName] -p[passWord] %dbName% --default-character-set=utf8 ^< %dataSaveName%>> %helpName%
 
-rem -- Mysqldump
+
+set IGNORED_TABLES_STRING=
+for %%a in (%EXCLUDED_TABLES%) do call set "IGNORED_TABLES_STRING=%%IGNORED_TABLES_STRING%% --ignore-table=%dbName%.%%a"
+
+rem -- mysqldump
 rem -- (structure only)
-"%mysqldumpPath%" --no-data --skip-events --skip-routines --skip-triggers -u%dbUser% -p%dbPass% %dbName% > "%schemeSavePath%"
+"%mysqldumpPath%" --no-data --skip-events --skip-routines --skip-triggers -u%mysqlUserName% -p%mysqlPassword% %dbName% > %schemeSavePath%
 rem -- ONLY the stored procedures and triggers 
-"%mysqldumpPath%" --no-data --events --routines --triggers --no-create-info --no-create-db --skip-opt -u%dbUser% -p%dbPass% %dbName% > "%additionalSavePath%"
+"%mysqldumpPath%" --no-data --events --routines --triggers --no-create-info --no-create-db --skip-opt -u%mysqlUserName% -p%mysqlPassword% %dbName% > %additionalSavePath%
 rem -- (data only) --insert-ignore
-"%mysqldumpPath%" --lock-all-tables --skip-extended-insert --skip-events --skip-routines --skip-triggers --force -u%dbUser% -p%dbPass% %dbName% > "%dataSavePath%"
+"%mysqldumpPath%" --lock-all-tables %IGNORED_TABLES_STRING% --skip-extended-insert --skip-events --skip-routines --skip-triggers --force -u%mysqlUserName% -p%mysqlPassword% %dbName% > %dataSavePath%
 
-rem --  Delay time
-@ping 127.0.0.1 -n 1 -w 2500 > nul
+rem -- 暫時停止1秒
+@ping 127.0.0.1 -n 1 -w 1000 > nul
 
-call "%zipPath%" %zipPrm% "%dataZipPath%" "%dataSavePath%" "%schemeSavePath%" "%additionalSavePath%" howToUse.txt
+rem -- call "%exe7z%" %zipPrm% %dataZipPath% %dataSavePath%
+call "%exe7z%" %zipPrm% %dataZipPath% %dataSavePath% %schemeSavePath% %additionalSavePath% %helpName%
 
+if exist "%backupDir%" (
+    rem -- 切換到backup目錄
+    cd /D %backupDir%
+    copy %dataZipPath% %backupDir%%dataZipName%
+)
+
+rem -- 移動回原始bat目錄
 cd /D %~dp0
 echo %~dp0
 
