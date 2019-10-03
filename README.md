@@ -22,7 +22,7 @@ backupDir | 備份路徑
 zipPath | 7z - 壓縮軟體安裝路徑
 mysqldumpPath | 你的mysql安裝位置
 zipPrm | 壓縮率
-
+EXCLUDED_TABLES | 排除匯出的資料表名稱，使用逗點區隔。例如：有t1,t2,t3,t4, tn，設置t3,t4則這兩個表內資料將略過
 
 
 ## How to Use (使用方式)
